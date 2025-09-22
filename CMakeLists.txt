@@ -13,6 +13,7 @@ set(SOURCES
     src/main.cpp
     src/io.cpp
     src/distances.cpp
+    src/utils.cpp
 )
 
 # Add executable
