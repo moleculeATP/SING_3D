@@ -12,6 +12,7 @@ find_package(Boost REQUIRED COMPONENTS graph)
 set(SOURCES
     src/main.cpp
     src/io.cpp
+    src/distances.cpp
 )
 
 # Add executable

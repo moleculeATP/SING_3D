@@ -10,9 +10,9 @@
 
 #include "io.h"
 
-std::vector<Eigen::VectorXd> read_obj_cloud_points(const std::string& file_name){
+std::vector<Eigen::Vector3d> read_obj_cloud_points(const std::string& file_name){
     std::ifstream file(file_name);
-    std::vector<Eigen::VectorXd> points = {};
+    std::vector<Eigen::Vector3d> points = {};
     if (!file.is_open()) {
         std::cerr << "Error: could not open file " << file_name << std::endl;
         return points;
@@ -27,8 +27,8 @@ std::vector<Eigen::VectorXd> read_obj_cloud_points(const std::string& file_name)
             while (iss >> coord) {
                 coords.push_back(coord);
             }
-            Eigen::VectorXd point(coords.size());
-            for (size_t i = 0; i < coords.size(); ++i) {
+            Eigen::Vector3d point;
+            for (size_t i = 0; i < 3; ++i) {
                 point(i) = coords[i];
             }
             points.push_back(point);
@@ -39,7 +39,7 @@ std::vector<Eigen::VectorXd> read_obj_cloud_points(const std::string& file_name)
     return points;
 }
 
-void write_neighboring_graph(const std::string& file_name, const std::vector<Eigen::VectorXd> points, const Eigen::MatrixXd& adj_mat) {
+void write_neighboring_graph(const std::string& file_name, const std::vector<Eigen::Vector3d> points, const Eigen::MatrixXd& adj_mat) {
     // write in a .obj format whit verices as v and edges as l. A new file is created or overwritten if it already exists.
     std::cout << "Writing neighboring graph to " << file_name << std::endl;
     std::ofstream file(file_name);
