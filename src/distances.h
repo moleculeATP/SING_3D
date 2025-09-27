@@ -15,9 +15,11 @@ std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& poi
 
 std::pair<Eigen::MatrixXd, std::vector<std::vector<double>>> computeSINGDistances(
     const std::vector<Eigen::Vector3d>& points,
+    const std::vector<Eigen::Vector3d>& normals,
     const std::string& filename = "",
     bool write = false,
-    double density = 0.0
+    double density_weight = 0.0,
+    double normals_weight = 0.0
 );
 
 

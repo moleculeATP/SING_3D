@@ -10,12 +10,15 @@
 
 #include "io.h"
 
-std::vector<Eigen::Vector3d> read_obj_cloud_points(const std::string& file_name){
+std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> 
+        read_obj_cloud_points(const std::string& file_name){
+
     std::ifstream file(file_name);
     std::vector<Eigen::Vector3d> points = {};
+    std::vector<Eigen::Vector3d> normals = {};
     if (!file.is_open()) {
         std::cerr << "Error: could not open file " << file_name << std::endl;
-        return points;
+        return std::make_pair(points, normals);
     }
 
     std::string line;
@@ -32,11 +35,23 @@ std::vector<Eigen::Vector3d> read_obj_cloud_points(const std::string& file_name)
                 point(i) = coords[i];
             }
             points.push_back(point);
+        } else if (line.substr(0, 3) == "vn ") {
+            std::istringstream iss(line.substr(2));
+            std::vector<double> coords;
+            double coord;
+            while (iss >> coord) {
+                coords.push_back(coord);
+            }
+            Eigen::Vector3d normal;
+            for (size_t i = 0; i < 3; ++i) {
+                normal(i) = coords[i];
+            }
+            normals.push_back(normal);
         }
     }
 
     file.close();
-    return points;
+    return std::make_pair(points, normals);
 }
 
 void write_neighboring_graph(const std::string& file_name, const std::vector<Eigen::Vector3d> points, const Eigen::MatrixXd& adj_mat) {

@@ -20,19 +20,20 @@ int main(int argc, char* argv[]) {
 
     float epsilon = std::atof(argv[1]);
     float p = std::atof(argv[2]);
-    std::string filename = argv[3];
-    std::string out_graph = argv[4];
-    std::string out_csv = argv[5];
+    float q = std::atof(argv[3]);
+    std::string filename = argv[4];
+    std::string out_graph = argv[5];
+    std::string out_csv = argv[6];
 
     auto start = std::chrono::high_resolution_clock::now();
 
     std::cout << "Sing 3D" << std::endl;
     std::cout << "epsilon = " << epsilon << ", p = " << p << ", filename = " << filename << std::endl;
 
-    std::vector<Eigen::Vector3d> points = read_obj_cloud_points(filename);
+    auto [points, normals] = read_obj_cloud_points(filename);
     std::cout << "Number of points: " << points.size() << std::endl;
 
-    auto [dist_mat, lower_tri] = computeSINGDistances(points, "", false, p);
+    auto [dist_mat, lower_tri] = computeSINGDistances(points, normals, "", false, p, q);
     std::cout << "Distance matrix computed." << std::endl;
 
     auto [edges, adj_mat] = extractSINGEdges(dist_mat, epsilon);
@@ -47,7 +48,7 @@ int main(int argc, char* argv[]) {
     std::cout << "Time spend : " << elapsed.count() << " s\n";
 
     auto diag = compute_persistence_diagram(lower_tri);
-    print_barcode(diag, 1);
+    // print_barcode(diag, 1);
     // plot_barcode_terminal(diag, 2.0, 100);
 
     export_persistence_csv(diag, out_csv);

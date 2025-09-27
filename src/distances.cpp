@@ -25,9 +25,11 @@ std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& poi
 
 std::pair<Eigen::MatrixXd, std::vector<std::vector<double>>> computeSINGDistances(
     const std::vector<Eigen::Vector3d>& points,
+    const std::vector<Eigen::Vector3d>& normals,
     const std::string& filename,
     bool write,
-    double density
+    double density_weight,
+    double normals_weight
 ){
     int n = points.size();
     Eigen::MatrixXd dist_mat = Eigen::MatrixXd::Zero(n, n);
@@ -54,7 +56,8 @@ std::pair<Eigen::MatrixXd, std::vector<std::vector<double>>> computeSINGDistance
         std::vector<double> dists;
         for (int j = 0; j < i; j++) {
             double distance = euclidean_distance(points[i], points[j]) / (nn[i] + nn[j]) * 
-                                std::pow(std::max(nn[i], nn[j]) / std::min(nn[i], nn[j]), density);
+                                std::pow(std::max(nn[i], nn[j]) / std::min(nn[i], nn[j]), density_weight) *
+                                (1.0 + normals_weight * sqrt(2 * (1.0 - abs(normals[i].dot(normals[j])))));
             dist_mat(i, j) = distance;
             dist_mat(j, i) = distance;
             dists.push_back(distance);

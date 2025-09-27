@@ -35,7 +35,7 @@ std::vector<std::tuple<int, double, double>> compute_persistence_diagram(const D
         }
     }
 
-    double threshold = .3 * max_dist;
+    double threshold = 2;
     rips_complex.create_complex(simplex_tree, 3); // au moins 1 pour dim 0
 
     Persistent_cohomology pcoh(simplex_tree);
