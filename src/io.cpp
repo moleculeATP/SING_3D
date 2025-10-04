@@ -54,7 +54,7 @@ std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>>
     return std::make_pair(points, normals);
 }
 
-void write_neighboring_graph(const std::string& file_name, const std::vector<Eigen::Vector3d> points, const Eigen::MatrixXd& adj_mat) {
+void write_neighboring_graph(const std::string& file_name, const std::vector<Eigen::Vector3d> points, Adjacency_matrix adj_mat){ 
     // write in a .obj format whit verices as v and edges as l. A new file is created or overwritten if it already exists.
     std::cout << "Writing neighboring graph to " << file_name << std::endl;
     std::ofstream file(file_name);
@@ -69,7 +69,7 @@ void write_neighboring_graph(const std::string& file_name, const std::vector<Eig
     int n = adj_mat.rows();
     for (int i = 0; i < n; ++i) {
         for (int j = 0; j < i; ++j) {
-            if (adj_mat(i, j) > 0) {
+            if (adj_mat.coeff(i, j) > 0) {
                 file << "l " << i + 1 << " " << j + 1 << "\n"; // obj format is 1-indexed
             }
         }

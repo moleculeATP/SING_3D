@@ -5,6 +5,7 @@
 #include <iostream>
 #include <cmath>
 #include <Eigen/Dense>
+#include <Eigen/Sparse>
 #include <chrono>
 #include "io.h"
 #include "distances.h"
@@ -18,7 +19,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    float epsilon = std::atof(argv[1]);
+    double epsilon = std::atof(argv[1]);
     float p = std::atof(argv[2]);
     float q = std::atof(argv[3]);
     std::string filename = argv[4];
@@ -33,7 +34,7 @@ int main(int argc, char* argv[]) {
     auto [points, normals] = read_obj_cloud_points(filename);
     std::cout << "Number of points: " << points.size() << std::endl;
 
-    auto [dist_mat, lower_tri] = computeSINGDistances(points, normals, "", false, p, q);
+    auto [dist_mat, lower_tri] = computeSINGDistances(points, normals, "", false, p, q, 2);
     std::cout << "Distance matrix computed." << std::endl;
 
     auto [edges, adj_mat] = extractSINGEdges(dist_mat, epsilon);
@@ -41,17 +42,17 @@ int main(int argc, char* argv[]) {
 
     write_neighboring_graph(out_graph, points, adj_mat);
 
-    auto end = std::chrono::high_resolution_clock::now();
+    // auto end = std::chrono::high_resolution_clock::now();
 
-    std::chrono::duration<double> elapsed = end - start;
+    // std::chrono::duration<double> elapsed = end - start;
 
-    std::cout << "Time spend : " << elapsed.count() << " s\n";
+    // std::cout << "Time spend : " << elapsed.count() << " s\n";
 
-    auto diag = compute_persistence_diagram(lower_tri);
-    // print_barcode(diag, 1);
-    // plot_barcode_terminal(diag, 2.0, 100);
+    // auto diag = compute_persistence_diagram(lower_tri);
+    // // print_barcode(diag, 1);
+    // // plot_barcode_terminal(diag, 2.0, 100);
 
-    export_persistence_csv(diag, out_csv);
+    // export_persistence_csv(diag, out_csv);
 
     return 0;
 }
