@@ -44,7 +44,7 @@ std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
 
     Eigen::SparseMatrix<double> mat(n, n);
 
-    std::vector<Eigen::Triplet<bool>> triplets;
+    std::vector<Eigen::Triplet<double>> triplets;
     int alloc_size = std::min(300 * n, 10000000);
     triplets.reserve(alloc_size);
 
@@ -54,7 +54,7 @@ std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
     std::vector<double> nn = compute_nn_distances(points);
 
     // Thread-safe containers
-    std::vector<std::vector<Eigen::Triplet<bool>>> triplets_private;
+    std::vector<std::vector<Eigen::Triplet<double>>> triplets_private;
     std::vector<std::vector<Edge>> edges_private;
 
     int num_threads = 1;
@@ -82,8 +82,8 @@ std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
             }
 
             if (distance <= treshold){
-                triplets_private[tid].emplace_back(i, j, true);
-                triplets_private[tid].emplace_back(j, i, true);
+                triplets_private[tid].emplace_back(i, j, distance);
+                triplets_private[tid].emplace_back(j, i, distance);
                 edges_private[tid].emplace_back(i, j, distance);
             }
         }
