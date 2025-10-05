@@ -25,7 +25,7 @@ std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& poi
     return nn_distances;
 }
 
-std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
+std::pair<Eigen::SparseMatrix<double>, Edge_list> computeSINGDistances(
     const std::vector<Eigen::Vector3d>& points,
     const std::vector<Eigen::Vector3d>& normals,
     const std::string& filename,
@@ -34,12 +34,19 @@ std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
     double normals_weight,
     double treshold
 ){
+
     auto start = std::chrono::high_resolution_clock::now();
     int n = points.size();
 
+
     std::vector<Eigen::Vector3d> normals_normalized(n);
-    for (int i = 0; i < n; i++) {
-        normals_normalized[i] = normals[i].normalized();
+    if(normals_weight > 0.){
+        if (normals.size() != points.size()) {
+            throw std::invalid_argument("Points and normals must have the same size.");
+        }
+        for (int i = 0; i < n; i++) {
+            normals_normalized[i] = normals[i].normalized();
+        }
     }
 
     Eigen::SparseMatrix<double> mat(n, n);
@@ -48,15 +55,16 @@ std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
     int alloc_size = std::min(300 * n, 10000000);
     triplets.reserve(alloc_size);
 
-    std::vector<Edge> edges;
+    Edge_list edges;
     edges.reserve(alloc_size);
 
     std::vector<double> nn = compute_nn_distances(points);
 
     // Thread-safe containers
     std::vector<std::vector<Eigen::Triplet<double>>> triplets_private;
-    std::vector<std::vector<Edge>> edges_private;
+    std::vector<Edge_list> edges_private;
 
+    std::cout << "dqzdqd" << std::endl;
     int num_threads = 1;
     #ifdef _OPENMP
         num_threads = omp_get_max_threads();
@@ -84,7 +92,7 @@ std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
             if (distance <= treshold){
                 triplets_private[tid].emplace_back(i, j, distance);
                 triplets_private[tid].emplace_back(j, i, distance);
-                edges_private[tid].emplace_back(i, j, distance);
+                edges_private[tid].emplace_back(std::make_pair(i, j), distance);
             }
         }
 
@@ -112,4 +120,4 @@ std::pair<Eigen::SparseMatrix<double>, std::vector<Edge>> computeSINGDistances(
     std::cout << "Time " << elapsed << " s" << std::endl;
 
     return {mat, edges};
-}
+}   

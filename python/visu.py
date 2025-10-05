@@ -10,6 +10,14 @@ if len(sys.argv) < 3:
 filename = sys.argv[1]
 df = pd.read_csv(filename)
 dim = int(sys.argv[2])
+df = df[df['dim'] == dim]
+
+df['length'] = df['death'] - df['birth']
+
+finite_lengths = df.loc[df['death'] < float('inf'), 'length']
+min_length = finite_lengths.min() if not finite_lengths.empty else 0
+
+df = df[df['length'] > min_length + 1e-6]
 
 plt.figure(figsize=(6,6))
 for _, row in df.iterrows():

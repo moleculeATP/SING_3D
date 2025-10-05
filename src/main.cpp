@@ -34,25 +34,27 @@ int main(int argc, char* argv[]) {
     auto [points, normals] = read_obj_cloud_points(filename);
     std::cout << "Number of points: " << points.size() << std::endl;
 
-    auto [dist_mat, lower_tri] = computeSINGDistances(points, normals, "", false, p, q, 2);
+    auto [dist_mat, full_edges_list] = computeSINGDistances(points, normals, "", false, p, q, 2);
     std::cout << "Distance matrix computed." << std::endl;
 
+    int num_pt = points.size();
     auto [edges, adj_mat] = extractSINGEdges(dist_mat, epsilon);
     std::cout << "Number of edges: " << edges.size() << std::endl;
 
     write_neighboring_graph(out_graph, points, adj_mat);
 
-    // auto end = std::chrono::high_resolution_clock::now();
+    auto end = std::chrono::high_resolution_clock::now();
 
-    // std::chrono::duration<double> elapsed = end - start;
+    std::chrono::duration<double> elapsed = end - start;
 
-    // std::cout << "Time spend : " << elapsed.count() << " s\n";
+    std::cout << "Total time spend : " << elapsed.count() << " s\n";
 
-    // auto diag = compute_persistence_diagram(lower_tri);
-    // // print_barcode(diag, 1);
-    // // plot_barcode_terminal(diag, 2.0, 100);
+    auto diag = compute_persistence_diagram(full_edges_list, num_pt, 2);
+    // print_barcode(diag, 1);
+    // plot_barcode_terminal(diag, 1.0, 100);
 
-    // export_persistence_csv(diag, out_csv);
+    std::cout << "Diagram size: " << diag.size() << std::endl;
+    export_persistence_csv(diag, out_csv);
 
     return 0;
 }
