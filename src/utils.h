@@ -12,6 +12,7 @@
 #include <Eigen/Sparse>
 #include <gudhi/Simplex_tree.h>
 #include <gudhi/Rips_complex.h>
+#include <gudhi/Sparse_rips_complex.h>
 #include <gudhi/Persistent_cohomology.h>
 
 using Edge_list = std::vector<std::pair<std::pair<int,int>,double>>;

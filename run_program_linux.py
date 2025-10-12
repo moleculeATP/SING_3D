@@ -1,10 +1,10 @@
 import subprocess
 
-epsilon = 1.8
-p = 5
+epsilon = 10
+p = 3
 q = 0
 dim_to_display = 0
-FILE_NAME = "test_cluster_2"
+FILE_NAME = "teaser"
 filename = "../datas/" + FILE_NAME + ".obj"
 out_graph = "../outputs/graphs/" + FILE_NAME + ".obj"
 out_csv = "../outputs/persistence/" + FILE_NAME + ".csv"

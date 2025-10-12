@@ -47,3 +47,34 @@ plt.xlabel("Filtration value")
 plt.ylabel("Intervals")
 plt.title("Persistence Barcode")
 plt.show()
+
+if dim == 0:
+    df0 = df.copy()
+    max_death = df0['death'].replace(np.inf, 0).max() + 1
+    df0['death_plot'] = np.where(np.isinf(df0['death']), max_death, df0['death'])
+
+    events = []
+    for _, row in df0.iterrows():
+        events.append((row['birth'], +1))
+        events.append((row['death_plot'], -1))
+
+    events = []
+    for _, row in df0.iterrows():
+        if row['death'] < np.inf:
+            events.append((row['death'], -1))
+
+    events.sort()
+    x_vals = [0]
+    y_vals = [len(df0)]
+    n_clusters = len(df0)
+    for e, delta in events:
+        n_clusters += delta
+        x_vals.append(e)
+        y_vals.append(n_clusters)
+
+    plt.figure(figsize=(8,4))
+    plt.step(x_vals, y_vals, where='post')
+    plt.xlabel("Filtration value ε")
+    plt.ylabel("Number of clusters")
+    plt.title("Number of connected components vs ε (dim 0)")
+    plt.show()
