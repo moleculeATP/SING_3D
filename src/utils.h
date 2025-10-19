@@ -27,8 +27,7 @@ constexpr double INF = std::numeric_limits<double>::infinity();
 
 std::pair<std::vector<std::pair<int, int>>, Adjacency_matrix> extractSINGEdges(Distance_matrix dist_mat, double epsilon = 1.0);
 
-std::vector<std::tuple<int, double, double>>
-compute_persistence_diagram(Edge_list edge_list, int num_pt, double threshold = 2.);
+std::vector<std::tuple<int, double, double>> compute_persistence_diagram(Edge_list edge_list, int num_pt, double threshold = 2.);
 
 void print_barcode(const std::vector<std::tuple<int, double, double>>& diagram, int dim = 0);
 

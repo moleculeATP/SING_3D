@@ -132,7 +132,7 @@ std::vector<std::tuple<int, double, double>> compute_persistence_diagram(
 void print_barcode(const std::vector<std::tuple<int, double, double>>& diagram, int dim) {
     std::cout << "Persistence barcode:\n";
     for (const auto& [dim_, birth, death] : diagram) {
-        if (dim_ != dim) continue; // Ignore negative dimensions
+        if (dim_ != dim) continue; 
         std::cout << "dim " << dim << " : ["
                   << birth << ", "
                   << (death == std::numeric_limits<double>::infinity() ? "∞" : std::to_string(death))

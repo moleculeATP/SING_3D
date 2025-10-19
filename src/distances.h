@@ -17,8 +17,11 @@
 
 using Edge_list = std::vector<std::pair<std::pair<int,int>,double>>;
 double euclidean_distance(const Eigen::Vector3d& a, const Eigen::Vector3d& b);
+double ellipsoid_distance(const Eigen::Vector3d& a, const Eigen::Vector3d& b, const Eigen::Matrix3d& S);
 
-std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& points) ;
+std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& points);
+std::vector<Eigen::Matrix3d> compute_S_matrices(const std::vector<Eigen::Vector3d>& points, const std::vector<Eigen::Vector3d>& normals, double direction_weight);
+std::vector<Eigen::Matrix3d> compute_S_matrices(const std::vector<Eigen::Vector3d>& points, double direction_weight);
 
 std::pair<Eigen::SparseMatrix<double>, Edge_list> computeSINGDistances(
     const std::vector<Eigen::Vector3d>& points,
@@ -29,6 +32,15 @@ std::pair<Eigen::SparseMatrix<double>, Edge_list> computeSINGDistances(
     double normals_weight = 0.0,
     double treshold = 2.
 );
+
+std::pair<Eigen::SparseMatrix<double>, Edge_list> computeAnisotropeDistances(
+    const std::vector<Eigen::Vector3d>& points,
+    const std::vector<Eigen::Vector3d>& normals,
+    double direction_weight = 0.0,
+    double treshold = 2.0
+);
+
+
 
 #endif // DISTANCES_H
 

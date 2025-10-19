@@ -1,10 +1,10 @@
 import subprocess
 
-epsilon = 10
+epsilon = 5
 p = 3
 q = 0
 dim_to_display = 0
-FILE_NAME = "teaser"
+FILE_NAME = "A3"
 filename = "../datas/" + FILE_NAME + ".obj"
 out_graph = "../outputs/graphs/" + FILE_NAME + ".obj"
 out_csv = "../outputs/persistence/" + FILE_NAME + ".csv"

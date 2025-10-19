@@ -35,14 +35,15 @@ int main(int argc, char* argv[]) {
     auto [points, normals] = read_obj_cloud_points(filename);
     std::cout << "Number of points: " << points.size() << std::endl;
 
-    auto [dist_mat, full_edges_list] = computeSINGDistances(points, normals, "", false, p, q, threshold);
+    // auto [dist_mat, full_edges_list] = computeSINGDistances(points, normals, "", false, p, q, threshold);
+    auto [dist_mat, full_edges_list] = computeAnisotropeDistances(points, normals, 1, threshold);
     std::cout << "Distance matrix computed." << std::endl;
 
     int num_pt = points.size();
     auto [edges, adj_mat] = extractSINGEdges(dist_mat, epsilon);
     std::cout << "Number of edges: " << edges.size() << std::endl;
 
-    // write_neighboring_graph(out_graph, points, adj_mat);
+    write_neighboring_graph(out_graph, points, adj_mat);
 
     auto end = std::chrono::high_resolution_clock::now();
 

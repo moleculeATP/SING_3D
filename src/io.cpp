@@ -76,3 +76,26 @@ void write_neighboring_graph(const std::string& file_name, const std::vector<Eig
     }
     file.close();
 }
+
+void write_Ellipse_field(const std::string& file_name, const std::vector<Eigen::Vector3d> points, const std::vector<Eigen::Matrix3d> S_matrices){
+    // write in a .obj format whit verices as v and axes of the ellipses as l. A new file is created or overwritten if it already exists.
+    std::cout << "Writing ellipse field to " << file_name << std::endl;
+    std::ofstream file(file_name);
+    int n = points.size();
+
+    for(int i = 0; i < n; i++){
+        file << "v " << points[i](0) << " " << points[i](1) << " " << points[i](2) << "\n";
+
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(S_matrices[i]);
+        Eigen::Vector3d eigenvalues = es.eigenvalues();
+        Eigen::Matrix3d eigenvectors = es.eigenvectors();
+
+        for(int d = 0; d < 3; d++){
+            Eigen::Vector3d axis = eigenvectors.col(d) * std::sqrt(1.0 / eigenvalues(d));
+            axis *= 0.01;
+            file << "v " << points[i](0) + axis(0) << " " << points[i](1) + axis(1) << " " << points[i](2) + axis(2) << "\n";
+            file << "l " << i * 4 + 1 << " " << i * 4 + 2 + d << "\n";
+        }
+    }
+    file.close();
+}
