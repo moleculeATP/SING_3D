@@ -1,3 +1,0 @@
-[submodule "3rd/gudhi-devel"]
-	path = 3rd/gudhi-devel
-	url = https://github.com/GUDHI/gudhi-devel.git
