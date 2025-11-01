@@ -17,7 +17,7 @@ find_package(OpenMP REQUIRED)
 
 set(SOURCES
     src/main.cpp
-    src/io.cpp
+    src/io_sing.cpp
     src/distances.cpp
     src/utils.cpp
 )

@@ -8,7 +8,7 @@
 #include <iostream>
 #include <ostream>
 
-#include "io.h"
+#include "io_sing.h"
 
 std::pair<std::vector<Eigen::Vector3d>, std::vector<Eigen::Vector3d>> 
         read_obj_cloud_points(const std::string& file_name){

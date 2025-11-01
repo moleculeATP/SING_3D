@@ -7,7 +7,7 @@
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
 #include <chrono>
-#include "io.h"
+#include "io_sing.h"
 #include "distances.h"
 #include "utils.h"
 

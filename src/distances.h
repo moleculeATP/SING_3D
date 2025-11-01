@@ -11,7 +11,7 @@
 #include <CGAL/Orthogonal_k_neighbor_search.h>
 #include <Eigen/Dense>
 #include <Eigen/Sparse>
-#include "io.h"
+#include "io_sing.h"
 #include <chrono>
 
 
