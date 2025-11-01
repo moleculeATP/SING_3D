@@ -34,7 +34,8 @@
 # debug information files
 *.dwo
 
-# build file
 build
+outputs/*
+
 
 

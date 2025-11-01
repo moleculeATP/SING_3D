@@ -34,45 +34,119 @@ std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& poi
     return nn_distances;
 }
 
+// std::vector<Eigen::Matrix3d> compute_S_matrices(
+//     const std::vector<Eigen::Vector3d>& points,
+//     double direction_weight
+// ){
+//      size_t n = points.size();
+//     std::vector<Eigen::Matrix3d> S_list(n);
+
+//     std::vector<CGAL::Point_3<CGAL::Simple_cartesian<double>>> cgal_points;
+//     cgal_points.reserve(n);
+//     for (const auto& p : points) cgal_points.emplace_back(p(0), p(1), p(2));
+
+//     CGAL::Kd_tree<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> tree(cgal_points.begin(), cgal_points.end());
+
+//     const int K = 5; // A CHANGER PLUS TARD
+
+//     for (size_t i = 0; i < n; i++) {
+//         CGAL::Orthogonal_k_neighbor_search<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> search(tree, cgal_points[i], K+1);
+//         std::vector<Eigen::Vector3d> neighbors;
+//         neighbors.reserve(K+1);
+
+//         int count = 0;
+//         for (auto it = search.begin(); it != search.end() && count < K+1; ++it) {
+//             if (it->first != cgal_points[i]) { 
+//                 neighbors.emplace_back(it->first.x(), it->first.y(), it->first.z());
+//                 count++;
+//             }
+//         }
+//         neighbors.push_back(points[i]); 
+
+//         Eigen::Vector3d mean = Eigen::Vector3d::Zero();
+//         for (const auto& p : neighbors) mean += p;
+//         mean /= neighbors.size();
+
+//         Eigen::Matrix3d C = Eigen::Matrix3d::Zero();
+//         for (const auto& p : neighbors) {
+//             Eigen::Vector3d diff = p - mean;
+//             C += diff * diff.transpose();
+//         }
+//         C /= neighbors.size();
+
+//         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(C);
+//         Eigen::Vector3d eigenvalues = es.eigenvalues();
+//         Eigen::Matrix3d eigenvectors = es.eigenvectors();
+
+//         Eigen::Vector3d inv_axes;
+//         double lambda_max = eigenvalues.maxCoeff();
+//         for (int d = 0; d < 3; d++) {
+//             inv_axes(d) = 1.0 / (std::pow(eigenvalues(d) / lambda_max, direction_weight) + 1e-8);
+//         }
+
+//         // S = V * D * V^T
+//         Eigen::Matrix3d D = inv_axes.asDiagonal();
+//         S_list[i] = eigenvectors * D * eigenvectors.transpose();
+//     }
+
+//     return S_list;   
+// }
+
 std::vector<Eigen::Matrix3d> compute_S_matrices(
     const std::vector<Eigen::Vector3d>& points,
     double direction_weight
 ){
-     size_t n = points.size();
+    size_t n = points.size();
     std::vector<Eigen::Matrix3d> S_list(n);
 
     std::vector<CGAL::Point_3<CGAL::Simple_cartesian<double>>> cgal_points;
     cgal_points.reserve(n);
-    for (const auto& p : points) cgal_points.emplace_back(p(0), p(1), p(2));
+    for (const auto& p : points)
+        cgal_points.emplace_back(p(0), p(1), p(2));
 
     CGAL::Kd_tree<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> tree(cgal_points.begin(), cgal_points.end());
 
-    const int K = 5; // A CHANGER PLUS TARD
+    const int K = 20;
+    const double epsilon = 10;
 
     for (size_t i = 0; i < n; i++) {
-        CGAL::Orthogonal_k_neighbor_search<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> search(tree, cgal_points[i], K+1);
+        CGAL::Orthogonal_k_neighbor_search<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> search(
+            tree, cgal_points[i], K + 1);
+
         std::vector<Eigen::Vector3d> neighbors;
-        neighbors.reserve(K+1);
+        std::vector<double> weights;
+        neighbors.reserve(K + 1);
+        weights.reserve(K + 1);
 
         int count = 0;
-        for (auto it = search.begin(); it != search.end() && count < K+1; ++it) {
-            if (it->first != cgal_points[i]) { 
-                neighbors.emplace_back(it->first.x(), it->first.y(), it->first.z());
-                count++;
+        for (auto it = search.begin(); it != search.end() && count < K + 1; ++it) {
+            if (it->first == cgal_points[i]) continue;
+            Eigen::Vector3d q(it->first.x(), it->first.y(), it->first.z());
+            double dist = (q - points[i]).norm();
+            if (dist <= epsilon) {
+                double w = std::exp(-dist * dist / (2 * epsilon * epsilon));
+                neighbors.push_back(q);
+                weights.push_back(w);
             }
+            count++;
         }
-        neighbors.push_back(points[i]); 
+        neighbors.push_back(points[i]);
+        weights.push_back(1.0);
 
+        double weight_sum = 0.0;
         Eigen::Vector3d mean = Eigen::Vector3d::Zero();
-        for (const auto& p : neighbors) mean += p;
-        mean /= neighbors.size();
+        for (size_t j = 0; j < neighbors.size(); j++) {
+            mean += weights[j] * neighbors[j];
+            weight_sum += weights[j];
+        }
+        mean /= weight_sum;
 
         Eigen::Matrix3d C = Eigen::Matrix3d::Zero();
-        for (const auto& p : neighbors) {
-            Eigen::Vector3d diff = p - mean;
-            C += diff * diff.transpose();
+        for (size_t j = 0; j < neighbors.size(); j++) {
+            Eigen::Vector3d diff = neighbors[j] - mean;
+            C += weights[j] * diff * diff.transpose();
         }
-        C /= neighbors.size();
+        C /= weight_sum;
 
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(C);
         Eigen::Vector3d eigenvalues = es.eigenvalues();
@@ -84,16 +158,86 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
             inv_axes(d) = 1.0 / (std::pow(eigenvalues(d) / lambda_max, direction_weight) + 1e-8);
         }
 
-        // S = V * D * V^T
         Eigen::Matrix3d D = inv_axes.asDiagonal();
         S_list[i] = eigenvectors * D * eigenvectors.transpose();
     }
 
-    return S_list;   
+    return S_list;
 }
 
 
 
+// std::vector<Eigen::Matrix3d> compute_S_matrices(
+//     const std::vector<Eigen::Vector3d>& points,
+//     const std::vector<Eigen::Vector3d>& normals,
+//     double direction_weight
+// ){
+//     size_t n = points.size();
+//     std::vector<Eigen::Matrix3d> S_list(n);
+
+//     std::vector<CGAL::Point_3<CGAL::Simple_cartesian<double>>> cgal_points;
+//     cgal_points.reserve(n);
+//     for (const auto& p : points) cgal_points.emplace_back(p(0), p(1), p(2));
+
+//     CGAL::Kd_tree<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> tree(cgal_points.begin(), cgal_points.end());
+
+//     const int K = 5;
+
+//     for (size_t i = 0; i < n; i++) {
+//         CGAL::Orthogonal_k_neighbor_search<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> search(tree, cgal_points[i], K+1);
+//         std::vector<Eigen::Vector3d> neighbors;
+//         neighbors.reserve(K+1);
+
+//         int count = 0;
+//         for (auto it = search.begin(); it != search.end() && count < K+1; ++it) {
+//             if (it->first != cgal_points[i]) {
+//                 neighbors.emplace_back(it->first.x(), it->first.y(), it->first.z());
+//                 count++;
+//             }
+//         }
+//         neighbors.push_back(points[i]);
+
+//         Eigen::Vector3d mean = Eigen::Vector3d::Zero();
+//         for (const auto& p : neighbors) mean += p;
+//         mean /= neighbors.size();
+
+//         Eigen::Vector3d normal = normals[i].normalized();
+//         Eigen::Matrix3d P = Eigen::Matrix3d::Identity() - normal * normal.transpose();
+
+//         std::vector<Eigen::Vector3d> projected;
+//         projected.reserve(neighbors.size());
+//         for (const auto& p : neighbors) projected.push_back(P * (p - mean));
+
+//         Eigen::Matrix3d C = Eigen::Matrix3d::Zero();
+//         for (const auto& v : projected) C += v * v.transpose();
+//         C /= projected.size();
+
+//         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(C);
+//         Eigen::Vector3d eigenvalues = es.eigenvalues();
+//         Eigen::Matrix3d eigenvectors = es.eigenvectors();
+
+//         Eigen::Matrix3d V;
+//         V.col(2) = normal;
+
+//         Eigen::Vector3d axis1 = eigenvectors.col(2) - normal.dot(eigenvectors.col(2)) * normal;
+//         Eigen::Vector3d axis2 = eigenvectors.col(1) - normal.dot(eigenvectors.col(1)) * normal;
+//         axis1.normalize();
+//         axis2.normalize();
+//         V.col(0) = axis1;
+//         V.col(1) = axis2;
+
+//         double lambda_max = eigenvalues.maxCoeff();
+//         Eigen::Vector3d inv_axes;
+//         inv_axes(0) = 1.0 / (std::pow(eigenvalues(2) / lambda_max, direction_weight) + 1e-8);
+//         inv_axes(1) = 1.0 / (std::pow(eigenvalues(1) / lambda_max, direction_weight) + 1e-8);
+//         inv_axes(2) = 1.0 / (std::pow(eigenvalues(0) / lambda_max, direction_weight) + 1e-8);
+
+//         Eigen::Matrix3d D = inv_axes.asDiagonal();
+//         S_list[i] = V * D * V.transpose();
+//     }
+
+//     return S_list;
+// }
 std::vector<Eigen::Matrix3d> compute_S_matrices(
     const std::vector<Eigen::Vector3d>& points,
     const std::vector<Eigen::Vector3d>& normals,
@@ -102,42 +246,55 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
     size_t n = points.size();
     std::vector<Eigen::Matrix3d> S_list(n);
 
+    int K = 20;
+    double epsilon = 100;
+
     std::vector<CGAL::Point_3<CGAL::Simple_cartesian<double>>> cgal_points;
     cgal_points.reserve(n);
     for (const auto& p : points) cgal_points.emplace_back(p(0), p(1), p(2));
 
     CGAL::Kd_tree<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> tree(cgal_points.begin(), cgal_points.end());
 
-    const int K = 5;
-
     for (size_t i = 0; i < n; i++) {
         CGAL::Orthogonal_k_neighbor_search<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> search(tree, cgal_points[i], K+1);
+        
         std::vector<Eigen::Vector3d> neighbors;
         neighbors.reserve(K+1);
 
         int count = 0;
         for (auto it = search.begin(); it != search.end() && count < K+1; ++it) {
-            if (it->first != cgal_points[i]) {
-                neighbors.emplace_back(it->first.x(), it->first.y(), it->first.z());
-                count++;
+            Eigen::Vector3d neighbor(it->first.x(), it->first.y(), it->first.z());
+            if ((neighbor - points[i]).norm() <= epsilon) {
+                neighbors.push_back(neighbor);
             }
+            count++;
         }
         neighbors.push_back(points[i]);
-
-        Eigen::Vector3d mean = Eigen::Vector3d::Zero();
-        for (const auto& p : neighbors) mean += p;
-        mean /= neighbors.size();
 
         Eigen::Vector3d normal = normals[i].normalized();
         Eigen::Matrix3d P = Eigen::Matrix3d::Identity() - normal * normal.transpose();
 
-        std::vector<Eigen::Vector3d> projected;
-        projected.reserve(neighbors.size());
-        for (const auto& p : neighbors) projected.push_back(P * (p - mean));
+        double weight_sum = 0.0;
+        Eigen::Vector3d mean = Eigen::Vector3d::Zero();
+        std::vector<double> weights;
+        weights.reserve(neighbors.size());
+
+        for (const auto& p : neighbors) {
+            Eigen::Vector3d diff = p - points[i];
+            double w = std::exp(-diff.squaredNorm() / (2 * epsilon * epsilon));
+            weights.push_back(w);
+            mean += w * p;
+            weight_sum += w;
+        }
+        mean /= weight_sum;
 
         Eigen::Matrix3d C = Eigen::Matrix3d::Zero();
-        for (const auto& v : projected) C += v * v.transpose();
-        C /= projected.size();
+        for (size_t j = 0; j < neighbors.size(); j++) {
+            Eigen::Vector3d diff = neighbors[j] - mean;
+            diff = P * diff;
+            C += weights[j] * diff * diff.transpose();
+        }
+        C /= weight_sum;
 
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(C);
         Eigen::Vector3d eigenvalues = es.eigenvalues();
@@ -146,18 +303,16 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
         Eigen::Matrix3d V;
         V.col(2) = normal;
 
-        Eigen::Vector3d axis1 = eigenvectors.col(2) - normal.dot(eigenvectors.col(2)) * normal;
-        Eigen::Vector3d axis2 = eigenvectors.col(1) - normal.dot(eigenvectors.col(1)) * normal;
+        Eigen::Vector3d axis1 = eigenvectors.col(1) - normal.dot(eigenvectors.col(1)) * normal;
         axis1.normalize();
-        axis2.normalize();
         V.col(0) = axis1;
-        V.col(1) = axis2;
+        V.col(1) = normal;
 
         double lambda_max = eigenvalues.maxCoeff();
         Eigen::Vector3d inv_axes;
         inv_axes(0) = 1.0 / (std::pow(eigenvalues(2) / lambda_max, direction_weight) + 1e-8);
         inv_axes(1) = 1.0 / (std::pow(eigenvalues(1) / lambda_max, direction_weight) + 1e-8);
-        inv_axes(2) = 1.0 / (std::pow(eigenvalues(0) / lambda_max, direction_weight) + 1e-8);
+        inv_axes(2) = inv_axes(1);
 
         Eigen::Matrix3d D = inv_axes.asDiagonal();
         S_list[i] = V * D * V.transpose();
@@ -165,6 +320,7 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
 
     return S_list;
 }
+
 
 
 
@@ -300,4 +456,46 @@ std::pair<Eigen::SparseMatrix<double>, Edge_list> computeAnisotropeDistances(
     }
     mat.setFromTriplets(triplets.begin(), triplets.end());
     return {mat, edges}; 
+}
+
+std::pair<std::vector<std::pair<int, int>>, Adjacency_matrix> extractSINGEdges(Distance_matrix dist_mat, double epsilon) {
+    int n = dist_mat.rows();
+    std::vector<std::pair<int, int>> edges;
+    std::vector<Eigen::Triplet<bool>> triplets;
+
+    Adjacency_matrix adj_mat(n, n);   
+
+    // Containers thread-local
+    int num_threads = 1;
+    #ifdef _OPENMP
+        num_threads = omp_get_max_threads();
+    #endif
+
+    std::vector<std::vector<std::pair<int,int>>> edges_private(num_threads);
+    std::vector<std::vector<Eigen::Triplet<bool>>> triplets_private(num_threads);
+
+    #pragma omp parallel for if(num_threads > 1) schedule(dynamic)
+    for (int i = 0; i < n; i++) {
+        int tid = 0;
+        #ifdef _OPENMP
+                tid = omp_get_thread_num();
+        #endif
+
+        for (int j = 0; j < i; j++) {
+            double val = dist_mat.coeff(i, j);
+            if (val > 0 && val <= epsilon) {
+                edges_private[tid].emplace_back(i, j);
+                triplets_private[tid].emplace_back(i, j, true);
+                triplets_private[tid].emplace_back(j, i, true);
+            }
+        }
+    }
+
+    for (int t = 0; t < num_threads; t++) {
+        edges.insert(edges.end(), edges_private[t].begin(), edges_private[t].end());
+        triplets.insert(triplets.end(), triplets_private[t].begin(), triplets_private[t].end());
+    }
+
+    adj_mat.setFromTriplets(triplets.begin(), triplets.end());
+    return {edges, adj_mat};
 }

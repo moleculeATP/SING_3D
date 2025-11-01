@@ -40,7 +40,7 @@ std::pair<Eigen::SparseMatrix<double>, Edge_list> computeAnisotropeDistances(
     double treshold = 2.0
 );
 
-
+std::pair<std::vector<std::pair<int, int>>, Adjacency_matrix> extractSINGEdges(Distance_matrix dist_mat, double epsilon = 1.0);
 
 #endif // DISTANCES_H
 

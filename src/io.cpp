@@ -92,7 +92,7 @@ void write_Ellipse_field(const std::string& file_name, const std::vector<Eigen::
 
         for(int d = 0; d < 3; d++){
             Eigen::Vector3d axis = eigenvectors.col(d) * std::sqrt(1.0 / eigenvalues(d));
-            axis *= 0.01;
+            axis *= 1; // SCALE FOR VISUALIZATION
             file << "v " << points[i](0) + axis(0) << " " << points[i](1) + axis(1) << " " << points[i](2) + axis(2) << "\n";
             file << "l " << i * 4 + 1 << " " << i * 4 + 2 + d << "\n";
         }

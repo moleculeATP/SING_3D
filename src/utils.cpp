@@ -4,48 +4,6 @@
 #include <unordered_map>
 
 
-std::pair<std::vector<std::pair<int, int>>, Adjacency_matrix> extractSINGEdges(Distance_matrix dist_mat, double epsilon) {
-    int n = dist_mat.rows();
-    std::vector<std::pair<int, int>> edges;
-    std::vector<Eigen::Triplet<bool>> triplets;
-
-    Adjacency_matrix adj_mat(n, n);   
-
-    // Containers thread-local
-    int num_threads = 1;
-    #ifdef _OPENMP
-        num_threads = omp_get_max_threads();
-    #endif
-
-    std::vector<std::vector<std::pair<int,int>>> edges_private(num_threads);
-    std::vector<std::vector<Eigen::Triplet<bool>>> triplets_private(num_threads);
-
-    #pragma omp parallel for if(num_threads > 1) schedule(dynamic)
-    for (int i = 0; i < n; i++) {
-        int tid = 0;
-        #ifdef _OPENMP
-                tid = omp_get_thread_num();
-        #endif
-
-        for (int j = 0; j < i; j++) {
-            double val = dist_mat.coeff(i, j);
-            if (val > 0 && val <= epsilon) {
-                edges_private[tid].emplace_back(i, j);
-                triplets_private[tid].emplace_back(i, j, true);
-                triplets_private[tid].emplace_back(j, i, true);
-            }
-        }
-    }
-
-    for (int t = 0; t < num_threads; t++) {
-        edges.insert(edges.end(), edges_private[t].begin(), edges_private[t].end());
-        triplets.insert(triplets.end(), triplets_private[t].begin(), triplets_private[t].end());
-    }
-
-    adj_mat.setFromTriplets(triplets.begin(), triplets.end());
-    return {edges, adj_mat};
-}
-
 std::vector<std::tuple<int, double, double>> compute_persistence_diagram(
     Edge_list edge_list, int num_pt, double threshold) {
 
