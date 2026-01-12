@@ -21,7 +21,7 @@ double ellipsoid_distance(const Eigen::Vector3d& a, const Eigen::Vector3d& b, co
 
 std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& points);
 std::vector<Eigen::Matrix3d> compute_S_matrices(const std::vector<Eigen::Vector3d>& points, const std::vector<Eigen::Vector3d>& normals, double direction_weight);
-std::vector<Eigen::Matrix3d> compute_S_matrices(const std::vector<Eigen::Vector3d>& points, double direction_weight);
+std::vector<Eigen::Matrix3d> compute_S_matrices(const std::vector<Eigen::Vector3d>& points, double direction_weight, bool swap = false);
 
 std::pair<Eigen::SparseMatrix<double>, Edge_list> computeSINGDistances(
     const std::vector<Eigen::Vector3d>& points,
@@ -33,11 +33,12 @@ std::pair<Eigen::SparseMatrix<double>, Edge_list> computeSINGDistances(
     double treshold = 2.
 );
 
-std::pair<Eigen::SparseMatrix<double>, Edge_list> computeAnisotropeDistances(
+std::tuple<Eigen::SparseMatrix<double>, Edge_list, std::vector<Eigen::Matrix3d>> computeAnisotropeDistances(
     const std::vector<Eigen::Vector3d>& points,
     const std::vector<Eigen::Vector3d>& normals,
     double direction_weight = 0.0,
-    double treshold = 2.0
+    double treshold = 2.0,
+    bool swap = false
 );
 
 std::pair<std::vector<std::pair<int, int>>, Adjacency_matrix> extractSINGEdges(Distance_matrix dist_mat, double epsilon = 1.0);

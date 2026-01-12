@@ -94,7 +94,8 @@ std::vector<double> compute_nn_distances(const std::vector<Eigen::Vector3d>& poi
 
 std::vector<Eigen::Matrix3d> compute_S_matrices(
     const std::vector<Eigen::Vector3d>& points,
-    double direction_weight
+    double direction_weight,
+    bool swap
 ){
     size_t n = points.size();
     std::vector<Eigen::Matrix3d> S_list(n);
@@ -107,7 +108,7 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
     CGAL::Kd_tree<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> tree(cgal_points.begin(), cgal_points.end());
 
     const int K = 20;
-    const double epsilon = 10;
+    const double epsilon = 50;
 
     for (size_t i = 0; i < n; i++) {
         CGAL::Orthogonal_k_neighbor_search<CGAL::Search_traits_3<CGAL::Simple_cartesian<double>>> search(
@@ -115,12 +116,8 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
 
         std::vector<Eigen::Vector3d> neighbors;
         std::vector<double> weights;
-        neighbors.reserve(K + 1);
-        weights.reserve(K + 1);
-
-        int count = 0;
-        for (auto it = search.begin(); it != search.end() && count < K + 1; ++it) {
-            if (it->first == cgal_points[i]) continue;
+        
+        for (auto it = search.begin(); it != search.end(); ++it) {
             Eigen::Vector3d q(it->first.x(), it->first.y(), it->first.z());
             double dist = (q - points[i]).norm();
             if (dist <= epsilon) {
@@ -128,10 +125,7 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
                 neighbors.push_back(q);
                 weights.push_back(w);
             }
-            count++;
         }
-        neighbors.push_back(points[i]);
-        weights.push_back(1.0);
 
         double weight_sum = 0.0;
         Eigen::Vector3d mean = Eigen::Vector3d::Zero();
@@ -149,8 +143,17 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
         C /= weight_sum;
 
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> es(C);
-        Eigen::Vector3d eigenvalues = es.eigenvalues();
+        Eigen::Vector3d eigenvalues = es.eigenvalues(); // Sorted: 0 < 1 < 2
         Eigen::Matrix3d eigenvectors = es.eigenvectors();
+
+        // If swap is true, we exchange the med and max eigenvalues 
+        // to rotate the distance ellipsoid by 90 degrees
+        if (swap) {
+            double diff = std::abs(eigenvalues(0) - eigenvalues(1)) / std::abs(eigenvalues(0) - eigenvalues(2));
+            if (diff > .1){
+                std::swap(eigenvalues(1), eigenvalues(2));
+            }
+        }
 
         Eigen::Vector3d inv_axes;
         double lambda_max = eigenvalues.maxCoeff();
@@ -312,7 +315,7 @@ std::vector<Eigen::Matrix3d> compute_S_matrices(
         Eigen::Vector3d inv_axes;
         inv_axes(0) = 1.0 / (std::pow(eigenvalues(2) / lambda_max, direction_weight) + 1e-8);
         inv_axes(1) = 1.0 / (std::pow(eigenvalues(1) / lambda_max, direction_weight) + 1e-8);
-        inv_axes(2) = inv_axes(1);
+        inv_axes(2) = 1.0 / (std::pow(eigenvalues(0) / lambda_max, direction_weight) + 1e-8);
 
         Eigen::Matrix3d D = inv_axes.asDiagonal();
         S_list[i] = V * D * V.transpose();
@@ -422,11 +425,13 @@ std::pair<Eigen::SparseMatrix<double>, Edge_list> computeSINGDistances(
     return {mat, edges};
 }   
 
-std::pair<Eigen::SparseMatrix<double>, Edge_list> computeAnisotropeDistances(
+
+std::tuple<Eigen::SparseMatrix<double>, Edge_list, std::vector<Eigen::Matrix3d>> computeAnisotropeDistances(
     const std::vector<Eigen::Vector3d>& points,
     const std::vector<Eigen::Vector3d>& normals,
     double direction_weight,
-    double treshold
+    double treshold,
+    bool swap
 ){
     int n = points.size();
     Eigen::SparseMatrix<double> mat(n, n);
@@ -438,9 +443,11 @@ std::pair<Eigen::SparseMatrix<double>, Edge_list> computeAnisotropeDistances(
 
     edges.reserve(alloc_size);
 
-    std::vector<Eigen::Matrix3d> S_matrices = compute_S_matrices(points, direction_weight);
-    // std::vector<Eigen::Matrix3d> S_matrices = compute_S_matrices(points, normals, direction_weight);
-    write_Ellipse_field("Ellipse_field.obj", points, S_matrices);
+    // Pass the swap parameter here
+    std::vector<Eigen::Matrix3d> S_matrices = compute_S_matrices(points, direction_weight, swap);
+    
+    // Debug: export to see the rotated ellipses
+    // write_Ellipse_field("Ellipse_field.obj", points, S_matrices);
 
     for(int i = 0; i < n; i++){
         for(int j = 0; j < i; j++){
@@ -455,8 +462,10 @@ std::pair<Eigen::SparseMatrix<double>, Edge_list> computeAnisotropeDistances(
         }
     }
     mat.setFromTriplets(triplets.begin(), triplets.end());
-    return {mat, edges}; 
+    return {mat, edges, S_matrices}; 
 }
+
+
 
 std::pair<std::vector<std::pair<int, int>>, Adjacency_matrix> extractSINGEdges(Distance_matrix dist_mat, double epsilon) {
     int n = dist_mat.rows();
